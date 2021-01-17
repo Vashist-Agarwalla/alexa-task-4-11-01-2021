@@ -3,6 +3,13 @@ const mongodb = require('mongodb');
 
 const app = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+const client = new mongodb.MongoClient(process.env.MONGO, {
+    useUnifiedTopology: true
+});
+
 let collection;
 
 const testFunction = async () => {
@@ -16,80 +23,31 @@ const testFunction = async () => {
     }
 };
 
-startprg();
+app.post('/', async (req, res) => {
+    let incomingData = req.body;
+    await collection.insertOne(incomingData);
+    res.send("Data Sent");
+})
 
-function startprg() {
-    console.log("\n\n1. Add Address");
-    console.log("2. Delete Address");
-    console.log("3. View Address");
-    console.log("4. Exit");
+app.put('/', async (req, res) => {
+    let incomingData = req.body;
+    let data = await collection.findOne({ name: incomingData.name });
+    data.age = incomingData.age;
+    await collection.replaceOne({ name: incomingData.name }, data)
+    res.send("Update and written");
+})
 
-    r1.question("Enter your choice: ", (Option) => {
-        switch (parseInt(Option)) {
-            case 1:
-                addad();
-                break;
-            case 2:
-                delad();
-                break;
-            case 3:
-                viewad();
-                break;
-            case 4:
-                console.log("Bye");
-                exit(0);
-            default:
-                console.log("Wrong Option!")
-                startprg();
-        }
-    })
-}
+app.delete('/', async (req, res) => {
+    let incomingData = req.body;
+    await collection.deleteOne({ name: incomingData.name });
+    res.send('DELETE and written');
+})
 
-var obj = {
-    name: "NULL",
-    address: "NULL"
-};
-
-function addad() {
-    // console.log("Adding");
-    let dataBuffer = fs.readFileSync("data.json");
-    let data = JSON.parse(dataBuffer);
-    r1.question("Enter the Address: ", (Add) => {
-        r1.question("Enter the name with to which this Address will be saved: ", (Name) => {
-            obj.name = Name;
-            obj.address = Add;
-            data.push(obj);
-            let jsonString = JSON.stringify(data);
-            fs.writeFileSync("data.json", jsonString);
-            startprg();
-        });
-    });
-
-}
-
-function delad() {
-    // console.log("DELETING");
-    let dataBuffer = fs.readFileSync("data.json");
-    let data = JSON.parse(dataBuffer);
-    let final = [];
-    r1.question("Enter the name whose address would you like to delete: ", (Name) => {
-        for (let i = 0; i < data.length; i++) {
-            if (data[i].name !== Name) {
-                final.push(data[i]);
-            }
-        }
-        let jsonString = JSON.stringify(final);
-        fs.writeFileSync("data.json", jsonString);
-        startprg();
-    })
-}
-
-function viewad() {
-    // console.log("View");
-    let dataBuffer = fs.readFileSync("data.json");
-    console.table(JSON.parse(dataBuffer.toString()))
-    startprg();
-}
+app.get('/', async (req, res) => {
+    // let fileBuffer = fs.readFileSync('random.json', { encoding: "utf-8" });
+    let data = await collection.find({}).toArray();
+    res.json(data);
+})
 
 testFunction().then(() => {
     app.listen(8080, () => {
